@@ -1,25 +1,24 @@
 package com.example.bitcointracker;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.JsonHttpResponseHandler;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+
+import cz.msebera.android.httpclient.Header;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -70,28 +69,31 @@ public class MainActivity extends AppCompatActivity {
     // TODO: complete the letsDoSomeNetworking() method
     private void letsDoSomeNetworking(String url) throws IOException, JSONException {
 
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                response -> {
-                    // Handle the response
-                    System.out.println(response);
-                    try {
-                        JSONObject responseObj = new JSONObject(response);
-                        JSONObject price = responseObj.getJSONObject("rates");
-                        String object = price.getString("BTC");
-                        mPriceTextView.setText(object);
-                    } catch (JSONException E) {
-                        System.out.println(E);
-                    }
 
-                },
-                error -> {
-                    // Handle the error
-                    System.out.println(error.toString());
-                    Toast.makeText(this, "Something Went Wrong", Toast.LENGTH_SHORT).show();
-                });
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.get(url, new JsonHttpResponseHandler() {
 
-        RequestQueue queue = Volley.newRequestQueue(MainActivity.this);
-        queue.add(stringRequest);
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                // called when response HTTP status is "200 OK"
+                Log.d("Clima", "JSON: " + response.toString());
+                try {
+                    JSONObject price = response.getJSONObject("rates");
+                    String object = price.getString("BTC");
+                    mPriceTextView.setText(object);
+                } catch (JSONException E) {
+                    E.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable e, JSONObject response) {
+                // called when response HTTP status is "4XX" (eg. 401, 403, 404)
+                Log.d("Clima", "Request fail! Status code: " + statusCode);
+                Log.d("Clima", "Fail response: " + response);
+                Log.e("ERROR", e.toString());
+            }
+        });
 
     }
 }
